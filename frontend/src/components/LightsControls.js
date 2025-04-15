@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from 'axios';
 
+const api_url = process.env.REACT_APP_API_URL
 const LightsControls = () => {
   
   const [lights, setLights] = useState([
@@ -16,11 +17,11 @@ const LightsControls = () => {
     const newLights = [...lights];
     try {
         if (lights[index].status === 0){
-          url = "https://grain-controlling-improvement-ver.trycloudflare.com/led/on"
+          url = api_url + "/led/on"
           newLights[index].status = 1
         }
         else{
-          url = "https://grain-controlling-improvement-ver.trycloudflare.com/led/off"
+          url = api_url + "/led/off"
           newLights[index].status = 0
         }
         setLights(newLights);
