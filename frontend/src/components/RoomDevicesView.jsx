@@ -1,6 +1,6 @@
-import AirConditionerControls from "./AirConditionerControls";
-import AppliancesControls from "./AppliancesControls";
-import LightsControls from "./LightsControls";
+import AirConditionerControls from "./AirConditionerControls.jsx";
+import AppliancesControls from "./AppliancesControls.jsx";
+import LightsControls from "./LightsControls.jsx";
 import { useEffect } from "react";
 
 const RoomDevicesView = ({room}) => {

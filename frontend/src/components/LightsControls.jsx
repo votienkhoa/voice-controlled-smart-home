@@ -1,7 +1,7 @@
 import { useState } from "react";
 import axios from 'axios';
 
-const api_url = process.env.REACT_APP_API_URL
+const api_url = import.meta.env.VITE_API_URL
 const LightsControls = () => {
   
   const [lights, setLights] = useState([

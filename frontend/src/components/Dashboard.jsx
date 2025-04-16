@@ -1,7 +1,7 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import AddDevice from './AddDevice';
-import RoomDevicesView from './RoomDevicesView';
+import AddDevice from './AddDevice.jsx';
+import RoomDevicesView from './RoomDevicesView.jsx';
 import { Tabs } from 'flowbite-react';
 
 const Dashboard = () => {
