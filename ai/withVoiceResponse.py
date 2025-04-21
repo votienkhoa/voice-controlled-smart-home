@@ -4,6 +4,8 @@ import threading
 import queue
 import time
 import sys
+import os
+import contextlib
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -26,6 +28,11 @@ response_map = {
     'mở nhạc': 'Đã mở nhạc',
     'tắt nhạc': 'Đã tắt nhạc'
 }
+base_url = "https://api.kdth-smarthome.space"
+command_endpoint = {
+    'tắt đèn': '/led/off',
+    'bật đèn': '/led/on',
+}
 # Precompute embeddings for command list
 command_embeddings = model.encode(command_list)
 
@@ -47,11 +54,29 @@ def record_audio():
     RATE = 16000
     
     p = pyaudio.PyAudio()
+    
+    #find ReSpeaker
+    device_index = -1
+    for i in range(p.get_device_count()):
+        device_info = p.get_device_info_by_index(i)
+        if "seeed-2mic-voicecard" in device_info["name"]:
+            device_index = i
+            break
+
+    if device_index == -1:
+        print("ReSpeaker not found! Using default device.")
+        device_index = p.get_default_input_device_info()["index"]
+    else:
+        device_info = p.get_device_info_by_index(device_index)
+        max_channels = device_info["maxInputChannels"]
+        print(f"ReSpeake at index {device_index}: Max input channels = {max_channels}")
+        
     stream = p.open(format=FORMAT,
-                   channels=CHANNELS,
-                   rate=RATE,
-                   input=True,
-                   frames_per_buffer=CHUNK)
+                    channels=CHANNELS,
+                    rate=RATE,
+                    input=True,
+                    input_device_index=device_index,
+                    frames_per_buffer=CHUNK)
     
     print("Recording... Say 'xin chào' followed by your command.")
     
@@ -104,16 +129,8 @@ def process_audio():
                                 command = command_list[command_idx]
                                 print(f"Command: {command} (Similarity: {max_similarity:.2f})")
                                 print(f"Executing command: {command}")
-                                url = ""
-                                if command == 'tắt đèn':
-                                    url = "https://api.kdth-smarthome.space/led/off"
-                                   
-                                elif command == 'bật đèn':
-                                    url = "https://api.kdth-smarthome.space/led/on"
-                                elif command == 'mở nhạc':
-                                    pass
-                                elif command == 'tắt nhạc':
-                                    pass
+                                url = base_url + command_endpoint.get(command)
+                                print(url)
                                 response = requests.get(url)
                                 if response.status_code == 200:
                                     print("Dữ liệu từ API:", response)
