@@ -1,5 +1,7 @@
 import { useState } from "react";
 import axios from 'axios';
+import { ref, set } from "firebase/database";
+import { database } from "../config/firebase";
 
 const api_url = import.meta.env.VITE_API_URL
 const LightsControls = () => {
@@ -12,7 +14,7 @@ const LightsControls = () => {
     { name: "Light 5", brightness: 50, status: 0 },
   ]);
 
-  const turnOnLight = async (index) => {
+  const toggleLight = async (index) => {
     let url = ""
     const newLights = [...lights];
     try {
@@ -25,6 +27,9 @@ const LightsControls = () => {
           newLights[index].status = 0
         }
         setLights(newLights);
+        await set(ref(database, "devices/livingroom/light"), {
+            status: newLights[index].status
+        });
         const response = await axios.get(`${url}`);
         return response.data;
     } catch (error) {
@@ -54,7 +59,7 @@ const LightsControls = () => {
                 }}
                 className="w-1/2"
               />
-              <button className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onClick={() => turnOnLight(index)}>
+              <button className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onClick={() => toggleLight(index)}>
                 Turn {light.status===0?"on":"off"}
               </button>
             </div>
