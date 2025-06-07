@@ -132,20 +132,30 @@ def play_response(text):
         time.sleep(0.1)
     os.remove(filename)
 
-def record_audio_stream():
+def list_audio_input_devices():
+    print("Available audio input devices:")
+    p = pyaudio.PyAudio()
+    selected_index = -1
+    for i in range(p.get_device_count()):
+        device_info = p.get_device_info_by_index(i)
+        if device_info["maxInputChannels"] > 0:
+            print(f"  [{i}] {device_info['name']} (Channels: {device_info['maxInputChannels']})")
+            if "seeed" in device_info['name'].lower() or "respeaker 2" in device_info['name'].lower():
+                selected_index = i
+                print(f"--> Selected ReSpeaker device index: {i}")
+    p.terminate()
+    return selected_index
+
+def record_audio_stream(device_index):
     CHUNK = 1024
     FORMAT = pyaudio.paInt16
     CHANNELS = 1
     RATE = 16000
     p = pyaudio.PyAudio()
-    device_index = -1
-    for i in range(p.get_device_count()):
-        device_info = p.get_device_info_by_index(i)
-        if "seeed-2mic-voicecard" in device_info["name"]:
-            device_index = i
-            break
     if device_index == -1:
         device_index = p.get_default_input_device_info()["index"]
+    device_info = p.get_device_info_by_index(device_index)
+    print(f"Using device: [{device_index}] {device_info['name']} (Channels: {device_info['maxInputChannels']})")
 
     stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True,
                     input_device_index=device_index, frames_per_buffer=CHUNK)
@@ -231,17 +241,84 @@ def process_audio():
         audio_queue.task_done()
 
 def main():
+    print("Available audio input devices:")
+    p = pyaudio.PyAudio()
+    selected_device_index = -1
+    for i in range(p.get_device_count()):
+        device_info = p.get_device_info_by_index(i)
+        if device_info['maxInputChannels'] > 0:
+            print(f"  [{i}] {device_info['name']} (Channels: {device_info['maxInputChannels']})")
+            if "seeed" in device_info['name'].lower() or "respeaker 2" in device_info['name'].lower():
+                selected_device_index = i
+                print(f"--> Selected ReSpeaker device index: {i}")
+    if selected_device_index == -1:
+        selected_device_index = p.get_default_input_device_info()['index']
+        print(f"--> Using default input device index: {selected_device_index}")
+    p.terminate()
+
     print("Starting smart voice-controlled system with speaker recognition...")
-    record_thread = threading.Thread(target=record_audio_stream)
-    process_thread = threading.Thread(target=process_audio)
-    record_thread.start()
-    process_thread.start()
+    CHUNK = 1024
+    FORMAT = pyaudio.paInt16
+    CHANNELS = 1
+    RATE = 16000
+    pa = pyaudio.PyAudio()
+    stream = pa.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True,
+                     input_device_index=selected_device_index, frames_per_buffer=CHUNK)
+    print("Recording... Say 'xin chào' followed by your command.")
     try:
-        record_thread.join()
-        process_thread.join()
+        global awaiting_command, current_user
+        frames = []
+        while True:
+            data = stream.read(CHUNK, exception_on_overflow=False)
+            buffer.append(data)
+            frames.append(data)
+            if len(frames) >= 30:
+                raw_audio = b''.join(frames)
+                audio = sr.AudioData(raw_audio, 16000, 2)
+                try:
+                    text = recognizer.recognize_google(audio, language='vi-VN').lower()
+                    print(f"Heard: {text}")
+                    if "xin chào" in text and not awaiting_command:
+                        awaiting_command = True
+                        current_user = predict_speaker_from_raw_audio(raw_audio)
+                        print(f"Identified speaker: {current_user}")
+                        play_response(f"Xin chào {current_user}")
+                        print("Waiting for command...")
+                    elif awaiting_command:
+                        spoken_embedding = sentence_model.encode([text])[0]
+                        similarities = cosine_similarity([spoken_embedding], command_embeddings)[0]
+                        max_similarity = np.max(similarities)
+                        if max_similarity > 0.7:
+                            command_idx = np.argmax(similarities)
+                            command = command_list[command_idx]
+                            print(f"Command: {command} (Similarity: {max_similarity:.2f})")
+                            if command in user_permissions.get(current_user, []):
+                                url = base_url + command_endpoint.get(command, '')
+                                if url:
+                                    response = requests.get(url)
+                                    if response.status_code == 200:
+                                        play_response(response_map[command])
+                                    else:
+                                        play_response("Có lỗi khi gọi API.")
+                                else:
+                                    play_response("Lệnh chưa được hỗ trợ qua API.")
+                            else:
+                                play_response(f"{current_user} không có quyền thực hiện lệnh này.")
+                        else:
+                            play_response("Không hiểu lệnh vừa nói.")
+                        awaiting_command = False
+                except sr.UnknownValueError:
+                    pass
+                except sr.RequestError as e:
+                    print(f"Error: {e}")
+                    play_response("Có lỗi xảy ra khi xử lý âm thanh.")
+                frames.clear()
     except KeyboardInterrupt:
-        print("\nStopped recording.")
+        print("Stopped recording.")
     finally:
+        stream.stop_stream()
+        stream.close()
+        pa.terminate()
         pygame.mixer.quit()
         print("Program stopped.")
 
