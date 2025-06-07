@@ -14,6 +14,7 @@ import queue
 import time
 import io
 import requests
+from collections import deque
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from gtts import gTTS
@@ -52,8 +53,10 @@ def extract_mel_spectrogram(waveform, sr=16000, n_mels=256, hop_length=128, n_ff
     return mel_spec_db
 
 def predict_speaker(audio_file, model, device):
+    if not os.path.exists(audio_file):
+        raise FileNotFoundError(f"File {audio_file} not found.")
     waveform, sample_rate = torchaudio.load(audio_file)
-    mel_spec = extract_mel_spectrogram(waveform.numpy().squeeze())
+    mel_spec = extract_mel_spectrogram(waveform.cpu().numpy().squeeze())
     mel_spec = torch.tensor(mel_spec).float().unsqueeze(0).to(device)
 
     model.eval()
@@ -85,6 +88,8 @@ recognizer = sr.Recognizer()
 sentence_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 pygame.mixer.init()
 audio_queue = queue.Queue()
+buffer = deque(maxlen=50)
+lock = threading.Lock()
 awaiting_command = False
 current_user = None
 
@@ -103,20 +108,20 @@ user_permissions = {
     'dung': ['bật đèn', 'tắt đèn'],
     'huy': ['bật đèn'],
     'khoa': ['tắt đèn'],
-    'thuong': []
+    'thuong': ['bật đèn', 'tắt đèn', 'mở nhạc', 'tắt nhạc']
 }
 base_url = "https://api.kdth-smarthome.space"
-command_embeddings = sentence_model.encode(command_list)
+command_embeddings = np.array(sentence_model.encode(command_list))
 
 def play_response(text):
     tts = gTTS(text=text, lang='vi')
-    mp3_fp = io.BytesIO()
-    tts.write_to_fp(mp3_fp)
-    mp3_fp.seek(0)
-    pygame.mixer.music.load(mp3_fp, 'mp3')
+    filename = "temp_response.mp3"
+    tts.save(filename)
+    pygame.mixer.music.load(filename)
     pygame.mixer.music.play()
     while pygame.mixer.music.get_busy():
         time.sleep(0.1)
+    os.remove(filename)
 
 def record_audio_stream():
     CHUNK = 1024
@@ -137,10 +142,16 @@ def record_audio_stream():
                     input_device_index=device_index, frames_per_buffer=CHUNK)
 
     print("Recording... Say 'xin chào' followed by your command.")
+    frames = []
     try:
         while True:
             data = stream.read(CHUNK, exception_on_overflow=False)
-            audio_queue.put(data)
+            buffer.append(data)
+            frames.append(data)
+
+            if len(frames) >= 30:  # khoảng 2 giây âm thanh
+                audio_queue.put(b''.join(frames))
+                frames.clear()
     finally:
         stream.stop_stream()
         stream.close()
@@ -149,30 +160,23 @@ def record_audio_stream():
 
 def process_audio():
     global awaiting_command, current_user
-    audio_data = []
-    last_audio_time = time.time()
 
     while True:
-        data = audio_queue.get()
-        if data is None:
+        raw_audio = audio_queue.get()
+        if raw_audio is None:
             break
-        audio_data.append(data)
 
-        current_time = time.time()
-        elapsed_time = current_time - last_audio_time
-        process_interval = 4 if awaiting_command else 2
+        try:
+            audio = sr.AudioData(raw_audio, 16000, 2)
 
-        if elapsed_time > process_interval:
-            try:
-                audio = sr.AudioData(b''.join(audio_data), 16000, 2)
+            def recognize():
+                global awaiting_command, current_user
+                try:
+                    text = recognizer.recognize_google(audio, language='vi-VN').lower()
+                    print(f"Heard: {text}")
 
-                def recognize():
-                    global awaiting_command, current_user
-                    try:
-                        text = recognizer.recognize_google(audio, language='vi-VN').lower()
-                        print(f"Heard: {text}")
-
-                        if text.strip() == "xin chào" and not awaiting_command:
+                    with lock:
+                        if "xin chào" in text and not awaiting_command:
                             awaiting_command = True
                             current_user = identify_speaker_from_audio()
                             print(f"Identified speaker: {current_user}")
@@ -204,18 +208,16 @@ def process_audio():
                                 play_response("Không hiểu lệnh vừa nói.")
                             awaiting_command = False
 
-                    except sr.UnknownValueError:
-                        pass
-                    except sr.RequestError as e:
-                        print(f"Error: {e}")
-                        play_response("Có lỗi xảy ra khi xử lý âm thanh.")
+                except sr.UnknownValueError:
+                    pass
+                except sr.RequestError as e:
+                    print(f"Error: {e}")
+                    play_response("Có lỗi xảy ra khi xử lý âm thanh.")
 
-                threading.Thread(target=recognize, daemon=True).start()
-                audio_data = []
-                last_audio_time = current_time
+            threading.Thread(target=recognize, daemon=True).start()
 
-            except Exception as e:
-                print(f"Processing error: {e}")
+        except Exception as e:
+            print(f"Processing error: {e}")
 
         audio_queue.task_done()
 
