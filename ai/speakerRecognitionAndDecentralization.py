@@ -53,10 +53,8 @@ def extract_mel_spectrogram(waveform, sr=16000, n_mels=256, hop_length=128, n_ff
     return mel_spec_db
 
 def predict_speaker(audio_file, model, device):
-    if not os.path.exists(audio_file):
-        raise FileNotFoundError(f"File {audio_file} not found.")
     waveform, sample_rate = torchaudio.load(audio_file)
-    mel_spec = extract_mel_spectrogram(waveform.cpu().numpy().squeeze())
+    mel_spec = extract_mel_spectrogram(waveform.numpy().squeeze())
     mel_spec = torch.tensor(mel_spec).float().unsqueeze(0).to(device)
 
     model.eval()
@@ -68,15 +66,26 @@ def predict_speaker(audio_file, model, device):
 
     return speakers[pred], prob_list
 
-def identify_speaker_from_audio(temp_filename='speaker.wav', duration=3):
-    input_device_index = sd.default.device[0]
-    device_info = sd.query_devices(input_device_index, 'input')
-    channels = device_info['max_input_channels'] or 1
-    print(f"Recording using device: {device_info['name']} with {channels} channels")
-    audio = sd.rec(int(duration * 16000), samplerate=16000, channels=channels, dtype='int16')
-    sd.wait()
-    write(temp_filename, 16000, audio)
-    speaker_name, _ = predict_speaker(temp_filename, model, device)
+def predict_speaker_from_raw_audio(raw_audio):
+    import wave
+
+    temp_path = "temp_speaker.wav"
+    try:
+        # Ghi file WAV đúng định dạng PCM 16-bit mono 16kHz
+        with wave.open(temp_path, 'wb') as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)  # paInt16 = 2 bytes
+            wf.setframerate(16000)
+            wf.writeframes(raw_audio)
+
+        speaker_name, _ = predict_speaker(temp_path, model, device)
+    except Exception as e:
+        print(f"[Speaker Recognition] Failed to read audio: {e}")
+        speaker_name = "unknown"
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
     return speaker_name
 
 # Load model
@@ -149,7 +158,7 @@ def record_audio_stream():
             buffer.append(data)
             frames.append(data)
 
-            if len(frames) >= 30:  # khoảng 2 giây âm thanh
+            if len(frames) >= 30:
                 audio_queue.put(b''.join(frames))
                 frames.clear()
     finally:
@@ -178,7 +187,7 @@ def process_audio():
                     with lock:
                         if "xin chào" in text and not awaiting_command:
                             awaiting_command = True
-                            current_user = identify_speaker_from_audio()
+                            current_user = predict_speaker_from_raw_audio(raw_audio)
                             print(f"Identified speaker: {current_user}")
                             play_response(f"Xin chào {current_user}")
                             print("Waiting for command...")
