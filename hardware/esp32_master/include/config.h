@@ -1,0 +1,20 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// UART
+#define UART_TX_PIN 17
+#define UART_RX_PIN 16
+#define UART_BAUD 115200
+
+// WiFi
+#define WIFI_SSID "your_ssid"
+#define WIFI_PASS "your_pass"
+
+// MQTT
+#define MQTT_BROKER "broker.mqtt.com"
+#define MQTT_PORT 1883
+#define MQTT_CLIENT_ID "ESP32_Master"
+#define MQTT_TOPIC_STATUS "home/status"
+#define MQTT_TOPIC_COMMAND "home/command"
+
+#endif
