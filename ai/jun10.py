@@ -21,7 +21,6 @@ class SpeakerTransformer(nn.Module):
     def __init__(self, n_mels, embed_dim, num_heads, hidden_dim, num_layers, num_classes):
         super(SpeakerTransformer, self).__init__()
         self.input_proj = nn.Linear(n_mels, embed_dim)
-        # Positional encoding
         max_len = 1000
         pe = torch.zeros(max_len, embed_dim)
         position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
