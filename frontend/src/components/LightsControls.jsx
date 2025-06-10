@@ -1,18 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from 'axios';
 import { ref, set } from "firebase/database";
 import { database } from "../config/firebase";
 
-const api_url = import.meta.env.VITE_API_URL
-const LightsControls = () => {
-  
-  const [lights, setLights] = useState([
-    { name: "Light 1", brightness: 60, status: 0 },
-    { name: "Light 2", brightness: 80, status: 0 },
-    { name: "Light 3", brightness: 45, status: 0 },
-    { name: "Light 4", brightness: 30, status: 0 },
-    { name: "Light 5", brightness: 50, status: 0 },
-  ]);
+const api_url = "/api"
+
+const normalizeDevices = (devices) => {
+  // If devices is an array, return as is
+  if (Array.isArray(devices)) return devices;
+  // If devices is an object with a 'status' property, treat as a single light
+  if (devices && typeof devices === 'object' && 'status' in devices) return [devices];
+  // If devices is an object with keys (e.g., { light: { status: 0 } }), extract the light object
+  if (devices && typeof devices === 'object' && Object.values(devices).length === 1 && 'status' in Object.values(devices)[0]) {
+    return [Object.values(devices)[0]];
+  }
+  return [];
+};
+
+const LightsControls = ({ devices = [], room }) => {
+  const [lights, setLights] = useState(normalizeDevices(devices));
 
   const toggleLight = async (index) => {
     let url = ""
@@ -27,7 +33,7 @@ const LightsControls = () => {
           newLights[index].status = 0
         }
         setLights(newLights);
-        await set(ref(database, "devices/livingroom/light"), {
+        await set(ref(database, `devices/${room}/light`), {
             status: newLights[index].status
         });
         const response = await axios.get(`${url}`);
@@ -37,6 +43,11 @@ const LightsControls = () => {
         return []; // Return an empty array on error
     }
   };
+
+  useEffect(() => {
+    setLights(normalizeDevices(devices));
+  }, [devices]);
+
     return (
         <div className="mt-8">
         <h2 className="text-xl mb-4">Light</h2>
@@ -44,21 +55,9 @@ const LightsControls = () => {
           {lights.map((light, index) => (
             <div key={index} className="bg-gray-800 p-4 rounded-lg flex justify-between items-center">
               <div>
-                <div className="text-lg">{light.name}</div>
-                <div className="text-gray-400">{light.brightness}%</div>
+                <div className="text-lg">{light.name || `Light ${index + 1}`}</div>
+                <div className="text-gray-400">{light.status ? "On" : "Off"}</div>
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={light.brightness}
-                onChange={(e) => {
-                  const newLights = [...lights];
-                  newLights[index].brightness = e.target.value;
-                  setLights(newLights);
-                }}
-                className="w-1/2"
-              />
               <button className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onClick={() => toggleLight(index)}>
                 Turn {light.status===0?"on":"off"}
               </button>

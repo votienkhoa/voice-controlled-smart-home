@@ -9,6 +9,14 @@ const mqttTopicCommand = "home/command"; // Topic gửi lệnh
 const mqttTopicStatus = "home/status"; // Topic nhận trạng thái
 const client = mqtt.connect(mqttServer, { clientId: "NodeJS_API" });
 
+var admin = require("firebase-admin");
+var serviceAccount = require("./kdth-smarthome-firebase-adminsdk-fbsvc-058365873e.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://kdth-smarthome-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
+
 client.on('connect', () => {
   console.log('Connected to MQTT broker');
   client.subscribe([mqttTopicCommand, mqttTopicStatus], { qos: 0 }, (err) => {
@@ -113,6 +121,20 @@ app.post('/door/:state', (req, res) => {
     });
   } else {
     res.status(400).json({ error: 'Invalid state (on/off)' });
+  }
+});
+
+// Update device in Firebase Realtime Database
+app.post('/update-device', async (req, res) => {
+  const { room, type, data } = req.body;
+  if (!room || !type || typeof data !== 'object') {
+    return res.status(400).json({ error: 'room, type, and data are required in the request body' });
+  }
+  try {
+    await admin.database().ref(`devices/${room}/${type}`).set(data);
+    res.json({ message: `Device ${type} in room ${room} updated successfully` });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update device in Firebase', details: err.message });
   }
 });
 
