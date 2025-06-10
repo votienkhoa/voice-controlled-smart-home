@@ -1,6 +1,6 @@
 #include "wifi.h"
 #include <Arduino.h>
-#include "../lib/config.h"
+#include "config.h"
 
 void setupWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASS);

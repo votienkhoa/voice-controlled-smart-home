@@ -1,19 +1,29 @@
-#include <Arduino.h>
 #include <WiFi.h>
+#include <PubSubClient.h>
+#include "config.h"
+#include "uart_utils.h"
+#include "wifi_handler.h"
+#include "mqtt.h"
+#include "uart.h"
+#include "screen.h"
 
-// put function declarations here:
-int myFunction(int, int);
+
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);
+  setupWiFi();
+  setupMQTT(mqttClient);
+  setupUART();
+  setupScreen();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  maintainWiFi();
+  maintainMQTT(mqttClient);
+  mqttClient.loop();
+  receive(mqttClient);
+  updateScreen();
+  delay(100); 
 }
