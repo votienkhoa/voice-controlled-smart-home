@@ -4,55 +4,122 @@ const mqtt = require('mqtt');
 const app = express();
 const port = 3000;
 
-const mqttServer = "mqtt://127.0.0.1:1883";
-const mqttTopic = "home/led";
-const client = mqtt.connect(mqttServer);
+const mqttServer = "mqtt://127.0.0.1:1883"; // Thay bằng IP MQTT server thực tế
+const mqttTopicCommand = "home/command"; // Topic gửi lệnh
+const mqttTopicStatus = "home/status"; // Topic nhận trạng thái
+const client = mqtt.connect(mqttServer, { clientId: "NodeJS_API" });
 
-
-client.on('connect', function () {
+client.on('connect', () => {
   console.log('Connected to MQTT broker');
-  client.subscribe(mqttTopic, { qos: 0 }, function (err) {
+  client.subscribe([mqttTopicCommand, mqttTopicStatus], { qos: 0 }, (err) => {
     if (err) {
-      console.log("Failed to subscribe to topic:", err);
+      console.log("Failed to subscribe:", err);
     } else {
-      console.log(`Subscribed to topic: ${mqttTopic}`);
+      console.log(`Subscribed to topics: ${mqttTopicCommand}, ${mqttTopicStatus}`);
     }
   });
 });
 
-client.on('error', function (err) {
-  console.log('MQTT connection error:', err);
+client.on('error', (err) => {
+  console.log('MQTT error:', err);
 });
 
-client.on('close', function () {
+client.on('close', () => {
   console.log('MQTT connection closed');
 });
 
 client.on('message', (topic, message) => {
-  if (topic === mqttTopic) {
-    console.log(`Received message: ${message.toString()}`);
-  }
+  console.log(`Received on ${topic}: ${message.toString()}`);
 });
 
-app.get('/led/:state', (req, res) => {
-  const state = req.params.state;
-  if (state === "on" || state === "off") {
-    client.publish(mqttTopic, state.toUpperCase(), function (err) {
+app.use(express.json()); // Parse JSON body
+
+// LED control
+app.post('/led/:id/:state', (req, res) => {
+  const id = req.params.id;
+  const state = req.params.state.toUpperCase();
+  if (id >= 1 && id <= 3 && (state === 'ON' || state === 'OFF')) {
+    const command = `device:led${id},state:${state}`;
+    client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
       if (err) {
-        res.status(500).send("Error publishing MQTT message");
+        res.status(500).json({ error: 'Failed to publish MQTT message' });
       } else {
-        res.send(`LED turned ${state.toUpperCase()}`);
+        res.json({ message: `LED ${id} turned ${state}` });
       }
     });
   } else {
-    res.status(400).send("Invalid state. Use 'on' or 'off'");
+    res.status(400).json({ error: 'Invalid LED ID (1-3) or state (on/off)' });
+  }
+});
+
+// Servo control
+app.post('/servo/:id/angle/:value', (req, res) => {
+  const id = req.params.id;
+  const angle = parseInt(req.params.value);
+  if (id >= 1 && id <= 2 && angle >= 0 && angle <= 180) {
+    const command = `device:servo${id},angle:${angle}`;
+    client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
+      if (err) {
+        res.status(500).json({ error: 'Failed to publish MQTT message' });
+      } else {
+        res.json({ message: `Servo ${id} set to ${angle} degrees` });
+      }
+    });
+  } else {
+    res.status(400).json({ error: 'Invalid servo ID (1-2) or angle (0-180)' });
+  }
+});
+
+// DHT11 read
+app.get('/dht11/:type', (req, res) => {
+  const type = req.params.type.toLowerCase();
+  if (type === 'temp' || type === 'hum') {
+    const command = `device:dht11,action:read_${type}`;
+    client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
+      if (err) {
+        res.status(500).json({ error: 'Failed to publish MQTT message' });
+      } else {
+        res.json({ message: `Requested ${type} from DHT11` });
+      }
+    });
+  } else {
+    res.status(400).json({ error: 'Invalid type (temp/hum)' });
+  }
+});
+
+// MQ-2 read
+app.get('/mq2', (req, res) => {
+  const command = "device:mq2,action:read";
+  client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
+    if (err) {
+      res.status(500).json({ error: 'Failed to publish MQTT message' });
+    } else {
+      res.json({ message: 'Requested MQ-2 reading' });
+    }
+  });
+});
+
+// Main door control
+app.post('/door/:state', (req, res) => {
+  const state = req.params.state.toUpperCase();
+  if (state === 'ON' || state === 'OFF') {
+    const command = `MAIN_DOOR_${state}`;
+    client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
+      if (err) {
+        res.status(500).json({ error: 'Failed to publish MQTT message' });
+      } else {
+        res.json({ message: `Door set to ${state}` });
+      }
+    });
+  } else {
+    res.status(400).json({ error: 'Invalid state (on/off)' });
   }
 });
 
 app.get('/', (req, res) => {
-  res.send('Welcome to the Smart Home API!');
+  res.json({ message: 'Smart Home API' });
 });
 
 app.listen(port, () => {
-    console.log("Server is running on port " + port);
+  console.log(`Server running on port ${port}`);
 });
