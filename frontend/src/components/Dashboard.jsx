@@ -1,5 +1,8 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
+import { signOut } from "firebase/auth";
+import { auth } from '../firebase';
+import { useNavigate } from 'react-router-dom';
 import AddDevice from './AddDevice.jsx';
 import RoomDevicesView from './RoomDevicesView.jsx';
 import { Tabs } from 'flowbite-react';
@@ -7,6 +10,16 @@ import { Tabs } from 'flowbite-react';
 const Dashboard = () => {
   const [openAddDeviceModal, setOpenAddDeviceModal] = useState(false)
   const [currentRoom, setCurrentRoom] = useState("Living Room")
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // The onAuthStateChanged listener in App.jsx will handle the navigation
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   useEffect(() => {
 
@@ -24,7 +37,10 @@ const Dashboard = () => {
           
           <button className="text-gray-400 px-4 py-2">+ Add</button>
         </div>
-        <button onClick={() => setOpenAddDeviceModal(true)} className="bg-blue-500 text-white px-4 py-2 mr-0 ml-auto rounded">+ Add Device</button>
+        <div className="flex items-center space-x-4">
+          <button onClick={() => setOpenAddDeviceModal(true)} className="bg-blue-500 text-white px-4 py-2 rounded">+ Add Device</button>
+          <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+        </div>
         <AddDevice modalHook={[openAddDeviceModal, setOpenAddDeviceModal]} />
       </div>
       <RoomDevicesView room={currentRoom} />
