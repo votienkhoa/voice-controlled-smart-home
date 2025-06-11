@@ -9,6 +9,12 @@ const mqttTopicCommand = "home/command"; // Topic gửi lệnh
 const mqttTopicStatus = "home/status"; // Topic nhận trạng thái
 const client = mqtt.connect(mqttServer, { clientId: "NodeJS_API" });
 
+let latestStatus = {
+  dht11_temp: null,
+  dht11_hum: null,
+  mq2: null
+};
+
 var admin = require("firebase-admin");
 var serviceAccount = require("./kdth-smarthome-firebase-adminsdk-fbsvc-058365873e.json");
 
@@ -37,7 +43,17 @@ client.on('close', () => {
 });
 
 client.on('message', (topic, message) => {
-  console.log(`Received on ${topic}: ${message.toString()}`);
+  if (topic === mqttTopicStatus) {
+    const msg = message.toString();
+    console.log(`Status: ${msg}`);
+    if (msg.startsWith("dht11_temp:")) {
+      latestStatus.dht11_temp = parseFloat(msg.substring(11));
+    } else if (msg.startsWith("dht11_hum:")) {
+      latestStatus.dht11_hum = parseFloat(msg.substring(10));
+    } else if (msg.startsWith("mq2:")) {
+      latestStatus.mq2 = parseFloat(msg.substring(4));
+    }
+  }
 });
 
 app.use(express.json()); // Parse JSON body
