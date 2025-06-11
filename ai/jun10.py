@@ -13,8 +13,8 @@ segment_length = int(sample_rate * segment_duration)
 n_mels = 40                    # Số dải Mel
 
 # Đường dẫn đến các file model và embeddings đã được lưu trước đó
-MODEL_PATH = "/media/thuongnv/New Volume/Code/Github/voice-controlled-smart-home/ai/SpeakerRecognition/best_model_9_Jun.pth"
-EMB_PATH = "/media/thuongnv/New Volume/Code/Github/voice-controlled-smart-home/ai/SpeakerRecognition/speaker_embeddings_Jun_9.pth"
+MODEL_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/model_epoch_45.pth"
+EMB_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/speaker_embeddings_Jun_9.pth"
 
 # ===== Định nghĩa mô hình =====
 class SpeakerTransformer(nn.Module):

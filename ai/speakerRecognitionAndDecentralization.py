@@ -89,7 +89,7 @@ def predict_speaker_from_raw_audio(raw_audio):
     return speaker_name
 
 # Load model
-model = torch.load('/media/thuongnv/New Volume/Code/Github/voice-controlled-smart-home/ai/SpeakerRecognition/speaker_recognition_full_model_undersampling.pth', weights_only=False)
+model = torch.load('/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/speaker_recognition_full_model_undersampling.pth', weights_only=False)
 model.eval()
 
 # ========== Voice Command Control ==========
