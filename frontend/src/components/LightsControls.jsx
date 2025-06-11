@@ -17,30 +17,32 @@ const normalizeDevices = (devices) => {
   return [];
 };
 
-const LightsControls = ({ devices = [], room }) => {
+const LightsControls = ({ devices = [], room, canControl }) => {
   const [lights, setLights] = useState(normalizeDevices(devices));
 
   const toggleLight = async (index) => {
-    let url = ""
+    if (!canControl) return;
+    let url = "";
     const newLights = [...lights];
     try {
         if (lights[index].status === 0){
-          url = api_url + "/led/on"
-          newLights[index].status = 1
+          url = "/led/on";
+          newLights[index].status = 1;
         }
         else{
-          url = api_url + "/led/off"
-          newLights[index].status = 0
+          url = "/led/off";
+          newLights[index].status = 0;
         }
         setLights(newLights);
         await set(ref(database, `devices/${room}/light`), {
             status: newLights[index].status
         });
-        const response = await axios.get(`${url}`);
-        return response.data;
+        // Add room to body for backend auth
+        await axios.post(url, { room });
+        return;
     } catch (error) {
-        console.error("Error fetching devices:", error);
-        return []; // Return an empty array on error
+        console.error("Error toggling light:", error);
+        return;
     }
   };
 
@@ -48,7 +50,7 @@ const LightsControls = ({ devices = [], room }) => {
     setLights(normalizeDevices(devices));
   }, [devices]);
 
-    return (
+  return (
         <div className="mt-8">
         <h2 className="text-xl mb-4">Light</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -58,9 +60,10 @@ const LightsControls = ({ devices = [], room }) => {
                 <div className="text-lg">{light.name || `Light ${index + 1}`}</div>
                 <div className="text-gray-400">{light.status ? "On" : "Off"}</div>
               </div>
-              <button className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onClick={() => toggleLight(index)}>
+              <button className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" onClick={() => toggleLight(index)} disabled={!canControl}>
                 Turn {light.status===0?"on":"off"}
               </button>
+              {!canControl && <div className="text-xs text-gray-500">View only</div>}
             </div>
           ))}
         </div>

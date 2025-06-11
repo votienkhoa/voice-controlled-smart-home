@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from '../config/firebase';
+import { auth, database } from '../config/firebase';
+import { ref, set } from 'firebase/database';
 import { Link } from 'react-router-dom';
 import './Auth.css';
 
@@ -34,6 +35,13 @@ const Register = ({ onRegisterSuccess }) => {
                 formData.password
             );
             const user = userCredential.user;
+            // Store user info in Realtime Database
+            await set(ref(database, `users/${user.uid}`), {
+                email: formData.email,
+                name: formData.name
+            });
+            // Create default userAccess (empty array)
+            await set(ref(database, `userAccess/${user.uid}`), []);
             console.log("User registered successfully:", user);
             onRegisterSuccess(user);
         } catch (error) {

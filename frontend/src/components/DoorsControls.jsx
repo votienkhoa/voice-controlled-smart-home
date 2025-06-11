@@ -17,7 +17,7 @@ const normalizeDoors = (devices) => {
   return [];
 };
 
-const DoorsControls = ({ devices = [], room }) => {
+const DoorsControls = ({ devices = [], room, canControl }) => {
   const [doors, setDoors] = useState(normalizeDoors(devices));
 
   useEffect(() => {
@@ -25,6 +25,7 @@ const DoorsControls = ({ devices = [], room }) => {
   }, [devices]);
 
   const toggleDoor = async (index) => {
+    if (!canControl) return;
     const newDoors = [...doors];
     newDoors[index].open = !newDoors[index].open;
     setDoors(newDoors);
@@ -33,6 +34,8 @@ const DoorsControls = ({ devices = [], room }) => {
       ref(database, `devices/${room}/door`), {
             open: newDoors[index].open
     });
+    // Add room to body for backend auth
+    // (Add axios call here if you want to trigger backend as well)
   };
 
   return (
@@ -53,9 +56,11 @@ const DoorsControls = ({ devices = [], room }) => {
                 door.open ? "bg-red-500" : "bg-green-500"
               } text-white`}
               onClick={() => toggleDoor(index)}
+              disabled={!canControl}
             >
               {door.open ? "Close" : "Open"}
             </button>
+            {!canControl && <div className="text-xs text-gray-500">View only</div>}
           </div>
         ))}
       </div>
