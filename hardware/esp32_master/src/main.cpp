@@ -17,6 +17,7 @@ void setup() {
   setupMQTT(mqttClient);
   setupUART();
   setupScreen();
+  Serial.println("Setup complete.");
 }
 
 void loop() {

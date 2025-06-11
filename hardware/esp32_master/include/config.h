@@ -11,7 +11,7 @@
 #define WIFI_PASS "0905029920"
 
 // MQTT
-#define MQTT_BROKER "your_mqtt_server_ip" 
+#define MQTT_BROKER "192.168.2.99" 
 #define MQTT_PORT 1883
 #define MQTT_CLIENT_ID "ESP32_Master"
 #define MQTT_TOPIC_SUB "home/command"  
