@@ -59,7 +59,7 @@ input_dim = 256  # n_mels
 num_classes = len(speakers)
 model = TransformerSpeakerID(input_dim=input_dim, num_classes=num_classes).to(device)
 # model.load_state_dict(torch.load('/media/thuongnv/New Volume/Code/Github/voice-controlled-smart-home/ai/SpeakerRecognition/speaker_recognition_full_model.pth'))
-model = torch.load('/media/thuongnv/New Volume/Code/Github/voice-controlled-smart-home/ai/SpeakerRecognition/speaker_recognition_full_model.pth', weights_only=False)
+model = torch.load('/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/speaker_recognition_full_model_undersampling.pth', weights_only=False)
 model.eval()
 import sounddevice as sd
 from scipy.io.wavfile import write
