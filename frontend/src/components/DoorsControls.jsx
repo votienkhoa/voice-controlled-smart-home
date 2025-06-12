@@ -4,7 +4,9 @@ import { database } from "../config/firebase";
 import axios from "axios";
 
 const API_PORT = 3000; // Keep in sync with backend server.js
-const API_BASE = `http://localhost:${API_PORT}`;
+// const API_BASE = `http://localhost:${API_PORT}`;
+const API_BASE = "api.kdth-smarthome.space";
+
 
 const normalizeDoors = (devices) => {
   if (Array.isArray(devices)) return devices;

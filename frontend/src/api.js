@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'https://localhost:3000'; // Replace with your actual API URL
+// const API_URL = 'https://localhost:3000'; // Replace with your actual API URL
+const API_BASE = "api.kdth-smarthome.space";
 
 // Authentication API functions
 export const login = async (email, password) => {

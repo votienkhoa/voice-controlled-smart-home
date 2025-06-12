@@ -8,7 +8,9 @@ import axios from "axios";
 import { getAuth } from "firebase/auth";
 
 const API_PORT = 3000; // Keep in sync with backend server.js
-const API_BASE = `http://localhost:${API_PORT}`;
+// const API_BASE = `http://localhost:${API_PORT}`;
+const API_BASE = "api.kdth-smarthome.space";
+
 
 const RoomDevicesView = ({ room }) => {
     const [devices, setDevices] = useState({});
