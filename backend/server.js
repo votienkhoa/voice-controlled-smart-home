@@ -24,7 +24,6 @@ let latestStatus = {
   dht11_hum: null,
   mq2: null
 };
-
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://kdth-smarthome-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -54,7 +53,6 @@ async function canControlRoom(uid, room) {
   if (!allowedRooms) return false;
   return allowedRooms.includes(room);
 }
-
 client.on('connect', () => {
   console.log('Connected to MQTT broker');
   client.subscribe([mqttTopicCommand, mqttTopicStatus], { qos: 0 }, (err) => {
@@ -78,6 +76,7 @@ client.on('message', (topic, message) => {
   if (topic === mqttTopicStatus) {
     const msg = message.toString();
     console.log(`Status: ${msg}`);
+
     // Example message formats:
     // "guestroom_door:open" or "guestroom_door:closed"
     // "livingroom_light:1" or "livingroom_light:0"
