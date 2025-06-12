@@ -11,7 +11,7 @@ const port = 3000;
 app.use(cors({
   origin: 'http://localhost:5173',
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 const mqttServer = "mqtt://127.0.0.1:1883"; 
@@ -24,6 +24,7 @@ let latestStatus = {
   dht11_hum: null,
   mq2: null
 };
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://kdth-smarthome-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -39,7 +40,7 @@ async function authenticateToken(req, res, next) {
   // try {
   //   const decodedToken = await getAuth().verifyIdToken(token);
   //   req.user = decodedToken;
-  //   next();
+    // next();
   // } catch (err) {
   //   return res.status(403).json({ error: 'Invalid or expired token' });
   // }
@@ -53,6 +54,7 @@ async function canControlRoom(uid, room) {
   if (!allowedRooms) return false;
   return allowedRooms.includes(room);
 }
+
 client.on('connect', () => {
   console.log('Connected to MQTT broker');
   client.subscribe([mqttTopicCommand, mqttTopicStatus], { qos: 0 }, (err) => {
@@ -76,7 +78,6 @@ client.on('message', (topic, message) => {
   if (topic === mqttTopicStatus) {
     const msg = message.toString();
     console.log(`Status: ${msg}`);
-
     // Example message formats:
     // "guestroom_door:open" or "guestroom_door:closed"
     // "livingroom_light:1" or "livingroom_light:0"
@@ -131,14 +132,14 @@ client.on('message', (topic, message) => {
 app.use(express.json()); // Parse JSON body
 
 // LED control
-app.post('/led/:id/:state', authenticateToken, async (req, res) => {
-  const id = req.params.id;
-  const state = req.params.state.toUpperCase();
-  const room = req.body.room; // Expect room in body
-  if (!room) return res.status(400).json({ error: 'Room is required' });
-  if (!(await canControlRoom(req.user.uid, room))) {
-    return res.status(403).json({ error: 'Not authorized to control this room' });
-  }
+app.post('/led/:id/:state', async (req, res) => {
+   const id = req.params.id;
+   const state = req.params.state.toUpperCase();
+  // const room = req.body.room; // Expect room in body
+  // if (!room) return res.status(400).json({ error: 'Room is required' });
+  // if (!(await canControlRoom(req.user.uid, room))) {
+  //   return res.status(403).json({ error: 'Not authorized to control this room' });
+  // }
   if (id >= 1 && id <= 3 && (state === 'ON' || state === 'OFF')) {
     const command = `device:led${id},state:${state}`;
     client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
@@ -154,14 +155,14 @@ app.post('/led/:id/:state', authenticateToken, async (req, res) => {
 });
 
 // Servo control
-app.post('/servo/:id/angle/:value', authenticateToken, async (req, res) => {
+app.post('/servo/:id/angle/:value', async (req, res) => {
   const id = req.params.id;
   const angle = parseInt(req.params.value);
-  const room = req.body.room;
-  if (!room) return res.status(400).json({ error: 'Room is required' });
-  if (!(await canControlRoom(req.user.uid, room))) {
-    return res.status(403).json({ error: 'Not authorized to control this room' });
-  }
+  // const room = req.body.room;
+  // if (!room) return res.status(400).json({ error: 'Room is required' });
+  // if (!(await canControlRoom(req.user.uid, room))) {
+  //   return res.status(403).json({ error: 'Not authorized to control this room' });
+  // }
   if (id >= 1 && id <= 2 && angle >= 0 && angle <= 180) {
     const command = `device:servo${id},angle:${angle}`;
     client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
