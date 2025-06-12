@@ -128,6 +128,11 @@ client.on('message', (topic, message) => {
       const humid = parseFloat(msg.split(":")[1]);
       admin.database().ref('devices/Living Room/Temperature & Humidity Sensor/humid').set(humid);
     }
+    else if (msg.startsWith("maindoor:")) {
+      const state = msg.split(":")[1].trim();
+      const isOpen = state === "ON";
+      //code o day
+    }
     // Add more parsing as needed for other rooms/devices
   }
 });
@@ -156,6 +161,21 @@ app.post('/led/:id/:state', async (req, res) => {
     res.status(400).json({ error: 'Invalid LED ID (1-3) or state (on/off)' });
   }
 });
+app.post('maindoor/:state', async (req, res) => {
+  const state = req.params.state.toUpperCase();
+  if (state === 'ON' || state === 'OFF') {
+    const command = `device:maindoor,state:${state}`;
+    client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
+      if (err) {
+        res.status(500).json({ error: 'Failed to publish MQTT message' });
+      } else {
+        res.json({ message: `Main door set to ${state}` });
+      }
+    });
+  } else {
+    res.status(400).json({ error: 'Invalid state (on/off)' });
+  }
+})
 
 // Servo control
 app.post('/servo/:id/angle/:value', async (req, res) => {

@@ -26,8 +26,8 @@ Button buttons[4] = {
 bool buttonStates[4] = {false, false, false, false};
 
 // Lệnh UART cho từng nút
-const char* onCommands[]  = { "device:led1,state:ON", "MAIN_DOOR_ON", "device:led2,state:ON", "device:led3,state:ON" };
-const char* offCommands[] = { "device:led1,state:OFF", "MAIN_DOOR_OFF", "device:led2,state:OFF", "device:led3,state:OFF" };
+const char* onCommands[]  = { "device:led1,state:ON", "device:maindoor,state:ON", "device:led2,state:ON", "device:led3,state:ON" };
+const char* offCommands[] = { "device:led1,state:OFF", "device:maindoor,state:OFF", "device:led2,state:OFF", "device:led3,state:OFF" };
 
 float latestTemp = -1, latestHum = -1, latestMQ2 = -1;
 

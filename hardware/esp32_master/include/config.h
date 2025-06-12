@@ -7,11 +7,11 @@
 #define UART_BAUD 115200    
 
 // WiFi
-#define WIFI_SSID "ALPHA"
-#define WIFI_PASS "27082021"
+#define WIFI_SSID "Em sinh viên ngọt nước"
+#define WIFI_PASS "checkhangemsinhvien"
 
 // MQTT
-#define MQTT_BROKER "192.168.2.39" 
+#define MQTT_BROKER "172.20.10.2" 
 #define MQTT_PORT 1883
 #define MQTT_CLIENT_ID "ESP32_Master"
 #define MQTT_TOPIC_SUB "home/command"  

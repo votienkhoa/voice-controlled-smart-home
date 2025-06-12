@@ -8,8 +8,8 @@
 #include "dht11.h"
 #include "mq2.h"
 
-String lock = "MAIN_DOOR_OFF";
-String unlock = "MAIN_DOOR_ON";
+String lock = "device:maindoor,state:OFF";
+String unlock = "device:maindoor,state:ON";
 
 void handleUART() {
   String message = receiveUART();
@@ -19,11 +19,11 @@ void handleUART() {
     if (message == unlock) {
       Serial.println("Unlocking door...");
       unlockDoor();
-      sendUART("door:UNLOCKED");
+      sendUART("maindoor:ON");
     } else if (message == lock) {
       Serial.println("Locking door...");
       lockDoor();
-      sendUART("door:LOCKED");
+      sendUART("maindoor:OFF");
     } 
     else if (message == "device:led1,state:ON") {
       controlLED(1, true);
