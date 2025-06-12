@@ -11,8 +11,8 @@ from speechbrain.pretrained import EncoderClassifier
 from collections import Counter
 
 # ─── Cấu hình đường dẫn và tham số ─────────────────────────────────────
-MODEL_PATH = "/home/thuongnv/Downloads/classifier_model.pkl"
-NORMALIZER_PATH = "/home/thuongnv/Downloads/normalizer.pkl"
+MODEL_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/classifier_model(1).pkl"
+NORMALIZER_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/normalizer(1).pkl"
 PRETRAINED_DIR = "pretrained_ecapa"
 SAMPLE_RATE = 16000
 SEG_SECONDS = 4.0

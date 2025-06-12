@@ -17,9 +17,10 @@ import pygame
 # === Configuration ===
 SR = 16000
 DEVICE = "cpu"
-CLASSIFIER_PATH = "/home/thuongnv/Downloads/classifier_model.pkl"
-NORMALIZER_PATH = "/home/thuongnv/Downloads/normalizer.pkl"
+CLASSIFIER_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/classifier_model.pkl"
+NORMALIZER_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/normalizer.pkl"
 WAKE_PHRASE = "xin chào"
+SEG_DUR = 2.0  # seconds for speaker capture
 
 # Predefined commands and permissions
 COMMAND_TEMPLATES = [
@@ -45,13 +46,12 @@ normalizer = joblib.load(NORMALIZER_PATH)
 sentence_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 command_embeddings = sentence_model.encode(COMMAND_TEMPLATES)
 
-# Speech recognizer + TTS init
+# Initialize recognizer and TTS
 recognizer = sr.Recognizer()
 pygame.mixer.init()
 
 
 def speak(text):
-    """Convert text to speech and play."""
     tts = gTTS(text=text, lang='vi')
     buf = io.BytesIO()
     tts.write_to_fp(buf)
@@ -63,24 +63,18 @@ def speak(text):
 
 
 def recognize_wake(timeout=None, phrase_time_limit=5):
-    """Listen for wake phrase and return text and audio data."""
     with sr.Microphone(sample_rate=SR) as mic:
         recognizer.adjust_for_ambient_noise(mic, duration=0.5)
         audio = recognizer.listen(mic, timeout=timeout, phrase_time_limit=phrase_time_limit)
     try:
         text = recognizer.recognize_google(audio, language="vi-VN").lower()
         print(f"[DEBUG] Heard phrase: {text}")
-        return text, audio
-    except sr.UnknownValueError:
-        print("[DEBUG] Wake audio not understood")
-        return "", None
-    except sr.RequestError as e:
-        print(f"[ERROR] API error: {e}")
-        return "", None
+        return text
+    except (sr.UnknownValueError, sr.RequestError):
+        return ""
 
 
 def recognize_command(timeout=None, phrase_time_limit=5):
-    """Listen for a command and return transcribed text."""
     with sr.Microphone(sample_rate=SR) as mic:
         recognizer.adjust_for_ambient_noise(mic, duration=0.5)
         audio = recognizer.listen(mic, timeout=timeout, phrase_time_limit=phrase_time_limit)
@@ -88,19 +82,19 @@ def recognize_command(timeout=None, phrase_time_limit=5):
         text = recognizer.recognize_google(audio, language="vi-VN").lower()
         print(f"[DEBUG] Heard command: {text}")
         return text
-    except sr.UnknownValueError:
-        print("[DEBUG] Command not understood")
-        return ""
-    except sr.RequestError as e:
-        print(f"[ERROR] API error: {e}")
+    except (sr.UnknownValueError, sr.RequestError):
         return ""
 
 
-def get_speaker_from_audio(audio_data):
-    """Extract speaker from raw WAV bytes."""
-    wav_bytes = audio_data.get_wav_data()
-    seg, _ = librosa.load(io.BytesIO(wav_bytes), sr=SR)
-    tensor = torch.tensor(seg).unsqueeze(0).to(DEVICE)
+def get_speaker_via_sd(duration=SEG_DUR):
+    """Record stereo and use channel 1 for speaker ID."""
+    audio = sd.rec(int(duration * SR), samplerate=SR, channels=2, dtype='float32')
+    sd.wait()
+    mono = audio[:, 0]  # take first channel
+    # normalize amplitude if needed
+    mono = mono / np.max(np.abs(mono) + 1e-6)
+    # extract embedding
+    tensor = torch.tensor(mono).unsqueeze(0).to(DEVICE)
     emb = spk_encoder.encode_batch(tensor)
     vec = emb.squeeze(0).cpu().numpy()
     vec_norm = normalizer.transform(vec.reshape(1, -1))
@@ -108,7 +102,6 @@ def get_speaker_from_audio(audio_data):
 
 
 def match_command(text):
-    """Match text to closest command template."""
     emb = sentence_model.encode([text])[0]
     sims = cosine_similarity([emb], command_embeddings)[0]
     idx = int(np.argmax(sims))
@@ -116,12 +109,11 @@ def match_command(text):
 
 
 def execute_command(cmd):
-    """Placeholder to integrate device control APIs."""
-    print(f"[ACTION] {cmd}")
+    print(f"[ACTION] {cmd}")  # integrate actual API here
 
 
 def main_loop():
-    # Calibrate ambient noise once
+    # Calibrate once
     with sr.Microphone(sample_rate=SR) as mic:
         print("Calibrating ambient noise...")
         recognizer.adjust_for_ambient_noise(mic, duration=1.0)
@@ -129,33 +121,28 @@ def main_loop():
 
     while True:
         try:
-            text, audio = recognize_wake(timeout=None, phrase_time_limit=4)
-            if WAKE_PHRASE in text and audio is not None:
+            phrase = recognize_wake(timeout=None, phrase_time_limit=4)
+            if WAKE_PHRASE in phrase:
                 print("[INFO] Wake word detected.")
-                # Identify speaker from wake-word audio
-                user = get_speaker_from_audio(audio)
+                user = get_speaker_via_sd()
                 print(f"Speaker: {user}")
                 speak(f"Xin chào {user}")
 
-                # Listen for the actual command
                 cmd_text = recognize_command(timeout=None, phrase_time_limit=5)
                 if not cmd_text:
                     speak("Tôi không nghe rõ lệnh, vui lòng thử lại.")
                     continue
-
                 cmd, score = match_command(cmd_text)
-                print(f"Matched command: {cmd} (sim={score:.2f})")
+                print(f"Matched: {cmd} (sim={score:.2f})")
 
-                # Permission check
                 if cmd in PERMISSION_MAP.get(user, []):
                     speak(f"Đang thực hiện lệnh {cmd}")
                     execute_command(cmd)
                 else:
                     speak("Bạn không có quyền thực hiện lệnh này.")
-
         except KeyboardInterrupt:
             print("Chương trình kết thúc.")
             break
 
-if __name__ == "__main__":
-    main_loop()
+
+main_loop()
