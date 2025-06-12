@@ -24,42 +24,42 @@ const normalizeDoors = (devices) => {
 };
 
 const DoorsControls = ({ devices = [], room, canControl }) => {
-  const [doors, setDoors] = useState(normalizeDoors(devices));
+
+  let allDoors = normalizeDoors(devices);
+  if (room === "Living Room") {
+    allDoors = [
+      { name: "Main Door", open: devices.open ?? false }
+    ];
+  }
+
+  const [doors, setDoors] = useState(allDoors);
 
   useEffect(() => {
-    setDoors(normalizeDoors(devices));
+    setDoors(allDoors);
   }, [devices]);
 
   const toggleDoor = async (index) => {
     if (!canControl) return;
     let url = "";
-    if (room === "Guest Room") {
-      url = `${API_BASE}/servo/1/angle/`;
+    // Main Door logic for Living Room
+    if (room === "Living Room" && doors[index].name === "Main Door") {
+      url = `${API_BASE}/maindoor/` + (doors[index].open ? "off" : "on");
+    } else if (room === "Guest Room") {
+      url = `${API_BASE}/servo/1/angle/` + (doors[index].open ? "0" : "180");
     } else if (room === "Master Bedroom") {
-      url = `${API_BASE}/servo/2/angle/`;
+      url = `${API_BASE}/servo/2/angle/` + (doors[index].open ? "180" : "0");
     }
     // ...add more room logic as needed
 
     const newDoors = [...doors];
-    if (newDoors[index].open === false) {
-      if (room === "Guest Room") {
-        url += "180";
-      }
-      else url += "0";
-    }
-    else {
-      if (room === "Guest Room") {
-        url += "0";
-      }
-      else url += "180";
-    }
     newDoors[index].open = !newDoors[index].open;
     setDoors(newDoors);
     // Update the door status in Firebase (customize path as needed)
-    await set(
-      ref(database, `devices/${room}/door`), {
-            open: newDoors[index].open
-    });
+    if (room === "Living Room" && doors[index].name === "Main Door") {
+      await set(ref(database, `devices/${room}/door`), { open: newDoors[index].open });
+    } else {
+      await set(ref(database, `devices/${room}/door`), { open: newDoors[index].open });
+    }
     // POST to backend
     await axios.post(url, { room });
   };

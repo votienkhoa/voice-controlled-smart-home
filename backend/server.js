@@ -9,21 +9,22 @@ const app = express();
 const port = 3000;
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: '*',
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-const mqttServer = "mqtt://127.0.0.1:1883"; 
+const mqttServer = "mqtt://172.20.10.2"; 
 const mqttTopicCommand = "home/command"; 
 const mqttTopicStatus = "home/status";
-const client = mqtt.connect(mqttServer, { clientId: "NodeJS_API" });
+const client = mqtt.connect(mqttServer, { clientId: "NodeJS_API_with_auth" });
 
 let latestStatus = {
   dht11_temp: null,
   dht11_hum: null,
   mq2: null
 };
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://kdth-smarthome-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -31,18 +32,18 @@ admin.initializeApp({
 
 // Middleware to verify Firebase Auth token and attach user info
 async function authenticateToken(req, res, next) {
-  // const authHeader = req.headers['authorization'];
-  // if (!authHeader || !authHeader.startsWith('Bearer ')) {
-  //   return res.status(401).json({ error: 'No token provided' });
-  // }
-  // const token = authHeader.split(' ')[1];
-  // try {
-  //   const decodedToken = await getAuth().verifyIdToken(token);
-  //   req.user = decodedToken;
-  //   next();
-  // } catch (err) {
-  //   return res.status(403).json({ error: 'Invalid or expired token' });
-  // }
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decodedToken = await getAuth().verifyIdToken(token);
+    req.user = decodedToken;
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: 'Invalid or expired token' });
+  }
 }
 
 // Helper to check if user can control a room
@@ -76,7 +77,6 @@ client.on('message', (topic, message) => {
   if (topic === mqttTopicStatus) {
     const msg = message.toString();
     console.log(`Status: ${msg}`);
-
     // Example message formats:
     // "guestroom_door:open" or "guestroom_door:closed"
     // "livingroom_light:1" or "livingroom_light:0"
@@ -85,44 +85,53 @@ client.on('message', (topic, message) => {
     // "masterbedroom_gas:100"
 
     // Door status (Guest Room)
-    if (msg.startsWith("guestroom_door:")) {
-      const open = msg.split(":")[1] === "open";
+    if (msg.startsWith("servo1:")) {
+      const open = msg.split(":")[1].trim() === "180";
+      console.log(open);
       admin.database().ref('devices/Guest Room/door/open').set(open);
     }
     // Light status (Guest Room)
-    else if (msg.startsWith("guestroom_light:")) {
-      const status = parseInt(msg.split(":")[1]);
+    else if (msg.startsWith("led1:")) {
+      const stat = msg.split(":")[1].trim();
+      const status = stat === "ON" ? 1 : 0;
+      console.log(status);
       admin.database().ref('devices/Guest Room/light/status').set(status);
     }
     // Door status (Master Bedroom)
-    else if (msg.startsWith("masterbedroom_door:")) {
-      const open = msg.split(":")[1] === "open";
+    else if (msg.startsWith("servo2:")) {
+      const open = msg.split(":")[1].trim() === "0";
       admin.database().ref('devices/Master Bedroom/door/open').set(open);
     }
     // Light status (Master Bedroom)
-    else if (msg.startsWith("masterbedroom_light:")) {
-      const status = parseInt(msg.split(":")[1]);
+    else if (msg.startsWith("led2:")) {
+      const status = msg.split(":")[1].trim() === "ON" ? 1 : 0;
       admin.database().ref('devices/Master Bedroom/light/status').set(status);
     }
     // Gas sensor (Master Bedroom)
-    else if (msg.startsWith("masterbedroom_gas:")) {
+    else if (msg.startsWith("mq2:")) {
       const value = parseFloat(msg.split(":")[1]);
       admin.database().ref('devices/Master Bedroom/Gas Sensor/value').set(value);
     }
     // Light status (Living Room)
-    else if (msg.startsWith("livingroom_light:")) {
-      const status = parseInt(msg.split(":")[1]);
+    else if (msg.startsWith("led3:")) {
+      const status = msg.split(":")[1].trim() === "ON" ? 1 : 0;
       admin.database().ref('devices/Living Room/light/status').set(status);
     }
     // Temp (Living Room)
-    else if (msg.startsWith("livingroom_temp:")) {
+    else if (msg.startsWith("dht11_temp:")) {
       const temp = parseFloat(msg.split(":")[1]);
       admin.database().ref('devices/Living Room/Temperature & Humidity Sensor/temp').set(temp);
     }
     // Humidity (Living Room)
-    else if (msg.startsWith("livingroom_hum:")) {
+    else if (msg.startsWith("dht11_hum:")) {
       const humid = parseFloat(msg.split(":")[1]);
       admin.database().ref('devices/Living Room/Temperature & Humidity Sensor/humid').set(humid);
+    }
+    else if (msg.startsWith("maindoor:")) {
+      const state = msg.split(":")[1].trim();
+      const isOpen = state === "ON";
+      admin.database().ref('devices/Living Room/door/open').set(isOpen);
+      //code o day
     }
     // Add more parsing as needed for other rooms/devices
   }
@@ -132,8 +141,8 @@ app.use(express.json()); // Parse JSON body
 
 // LED control
 app.post('/led/:id/:state', authenticateToken, async (req, res) => {
-  const id = req.params.id;
-  const state = req.params.state.toUpperCase();
+   const id = req.params.id;
+   const state = req.params.state.toUpperCase();
   const room = req.body.room; // Expect room in body
   if (!room) return res.status(400).json({ error: 'Room is required' });
   if (!(await canControlRoom(req.user.uid, room))) {
@@ -206,15 +215,15 @@ app.get('/mq2', (req, res) => {
 });
 
 // Main door control
-app.post('/door/:state', authenticateToken, async (req, res) => {
+app.post('/maindoor/:state', authenticateToken, async (req, res) => {
   const state = req.params.state.toUpperCase();
-  const room = req.body.room;
-  if (!room) return res.status(400).json({ error: 'Room is required' });
-  if (!(await canControlRoom(req.user.uid, room))) {
-    return res.status(403).json({ error: 'Not authorized to control this room' });
-  }
+  // const room = req.body.room;
+  // if (!room) return res.status(400).json({ error: 'Room is required' });
+  // if (!(await canControlRoom(req.user.uid, room))) {
+  //   return res.status(403).json({ error: 'Not authorized to control this room' });
+  // }
   if (state === 'ON' || state === 'OFF') {
-    const command = `MAIN_DOOR_${state}`;
+    const command = `device:maindoor,state:${state}`;
     client.publish(mqttTopicCommand, command, { qos: 0 }, (err) => {
       if (err) {
         res.status(500).json({ error: 'Failed to publish MQTT message' });

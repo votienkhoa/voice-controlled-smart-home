@@ -3,13 +3,11 @@ import { useState, useEffect } from 'react';
 import { signOut } from "firebase/auth";
 import { auth, database } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
-import AddDevice from './AddDevice.jsx';
 import RoomDevicesView from './RoomDevicesView.jsx';
 import UserAccessManager from "./UserAccessManager.jsx";
 import { ref, onValue } from 'firebase/database';
 
 const Dashboard = () => {
-  const [openAddDeviceModal, setOpenAddDeviceModal] = useState(false)
   const [rooms, setRooms] = useState([]);
   const [devices, setDevices] = useState({});
   const [currentRoom, setCurrentRoom] = useState("");
@@ -82,10 +80,8 @@ const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center space-x-4 ml-auto">
-          <button onClick={() => setOpenAddDeviceModal(true)} className="bg-blue-500 text-white px-4 py-2 rounded">+ Add Device</button>
           <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
         </div>
-        <AddDevice modalHook={[openAddDeviceModal, setOpenAddDeviceModal]} />
       </div>
       {activeTab === "devices" && <RoomDevicesView room={currentRoom} />}
       {activeTab === "useraccess" && <UserAccessManager />}

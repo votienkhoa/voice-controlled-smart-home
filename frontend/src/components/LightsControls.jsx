@@ -26,11 +26,11 @@ const LightsControls = ({ devices = [], room, canControl }) => {
     if (!canControl) return;
     let url = "";
     if (room === "Living Room") {
-      url = `${API_BASE}/led/1/`;
-    } else if (room === "Guest Room") {
-      url = `${API_BASE}/led/2/`;
-    } else if (room === "Master Bedroom") {
       url = `${API_BASE}/led/3/`;
+    } else if (room === "Guest Room") {
+      url = `${API_BASE}/led/1/`;
+    } else if (room === "Master Bedroom") {
+      url = `${API_BASE}/led/2/`;
     }
     // ...add more room logic as needed
 

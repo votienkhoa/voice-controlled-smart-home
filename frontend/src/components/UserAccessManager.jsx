@@ -80,7 +80,10 @@ const UserAccessManager = () => {
   };
 
   if (!isAdmin) {
-    return null;
+    return (<div className="p-4 bg-gray-900 text-white rounded-lg max-w-xl mx-auto mt-8">
+      <h2 className="text-2xl font-bold mb-4">User Access Manager</h2>
+      <p className="text-red-500">You do not have permission to access this page.</p>
+      </div>);
   }
 
   return (
