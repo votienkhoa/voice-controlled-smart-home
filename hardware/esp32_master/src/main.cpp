@@ -25,6 +25,7 @@ void loop() {
   maintainMQTT(mqttClient);
   mqttClient.loop();
   receive(mqttClient);
-  updateScreen();
+  updateScreen(mqttClient);
+
   delay(100); 
 }

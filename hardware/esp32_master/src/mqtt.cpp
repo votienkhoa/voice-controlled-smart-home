@@ -9,7 +9,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     message += (char)payload[i];
   }
   Serial.println("MQTT Received: [" + message + "]");
-  send(message.c_str()); 
+  send(message.c_str());
 }
 
 void setupMQTT(PubSubClient& client) {

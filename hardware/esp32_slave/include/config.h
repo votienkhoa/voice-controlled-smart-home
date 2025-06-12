@@ -31,7 +31,7 @@
 #define SERVO1_PIN 22
 #define SERVO2_PIN 23
 
-#define DHT11_PIN 4
+#define DHT11_PIN 15
 
 #define MQ2_PIN 36
 

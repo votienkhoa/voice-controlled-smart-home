@@ -16,7 +16,7 @@ void sendUART(const char* message) {
 
 String receiveUART() {
   unsigned long start = millis();
-  while (millis() - start < 1000) {
+  while (millis() - start < 1000) { 
     if (Serial2.available()) {
       return Serial2.readStringUntil('\n');
     }

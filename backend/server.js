@@ -7,9 +7,9 @@ const { getAuth } = require("firebase-admin/auth");
 const app = express();
 const port = 3000;
 
-const mqttServer = "mqtt://127.0.0.1:1883"; // Thay bằng IP MQTT server thực tế
-const mqttTopicCommand = "home/command"; // Topic gửi lệnh
-const mqttTopicStatus = "home/status"; // Topic nhận trạng thái
+const mqttServer = "mqtt://127.0.0.1:1883"; 
+const mqttTopicCommand = "home/command"; 
+const mqttTopicStatus = "home/status";
 const client = mqtt.connect(mqttServer, { clientId: "NodeJS_API" });
 
 let latestStatus = {

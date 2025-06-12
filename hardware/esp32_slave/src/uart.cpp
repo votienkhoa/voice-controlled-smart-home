@@ -44,12 +44,13 @@ void handleUART() {
       controlLED(3, false);
     } 
     else if (message.startsWith("device:servo1,angle:")) {
-      int angle = message.substring(19).toInt();
+      int angle = message.substring(20).toInt();
+      Serial.print(angle);
       controlServo(1, angle);
       sendUART(("servo1:" + String(angle)).c_str());
     } 
     else if (message.startsWith("device:servo2,angle:")) {
-      int angle = message.substring(19).toInt();
+      int angle = message.substring(20).toInt();
       controlServo(2, angle);
       sendUART(("servo2:" + String(angle)).c_str());
     } 
