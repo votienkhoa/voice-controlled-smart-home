@@ -5,6 +5,7 @@ import { auth, database } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
 import AddDevice from './AddDevice.jsx';
 import RoomDevicesView from './RoomDevicesView.jsx';
+import UserAccessManager from "./UserAccessManager.jsx";
 import { ref, onValue } from 'firebase/database';
 
 const Dashboard = () => {
@@ -12,6 +13,7 @@ const Dashboard = () => {
   const [rooms, setRooms] = useState([]);
   const [devices, setDevices] = useState({});
   const [currentRoom, setCurrentRoom] = useState("");
+  const [activeTab, setActiveTab] = useState("devices");
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -63,14 +65,20 @@ const Dashboard = () => {
             {rooms.length > 0 ? rooms.map(room => (
               <button
                 key={room}
-                className={`px-4 py-2 rounded-lg focus:outline-none mr-2 ${currentRoom === room ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-                onClick={() => setCurrentRoom(room)}
+                className={`px-4 py-2 rounded-lg focus:outline-none mr-2 ${currentRoom === room && activeTab === "devices" ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+                onClick={() => { setCurrentRoom(room); setActiveTab("devices"); }}
               >
                 {room}
               </button>
             )) : (
               <button className="px-4 py-2 rounded-lg bg-gray-700 text-gray-300">{currentRoom}</button>
             )}
+            <button
+              className={`px-4 py-2 rounded-lg focus:outline-none ml-2 ${activeTab === "useraccess" ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+              onClick={() => setActiveTab("useraccess")}
+            >
+              User Access
+            </button>
           </div>
         </div>
         <div className="flex items-center space-x-4 ml-auto">
@@ -79,8 +87,8 @@ const Dashboard = () => {
         </div>
         <AddDevice modalHook={[openAddDeviceModal, setOpenAddDeviceModal]} />
       </div>
-      <RoomDevicesView room={currentRoom} devices={devices[currentRoom] || {}} />
-      
+      {activeTab === "devices" && <RoomDevicesView room={currentRoom} />}
+      {activeTab === "useraccess" && <UserAccessManager />}
     </div>
     );
 };

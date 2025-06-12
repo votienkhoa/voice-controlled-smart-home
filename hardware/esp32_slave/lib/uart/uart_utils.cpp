@@ -11,7 +11,9 @@ void setupUART() {
 }
 
 void sendUART(const char* message) {
+  Serial.println("Slave sending: [" + String(message) + "]");
   Serial2.println(message);
+  Serial2.flush();
 }
 
 String receiveUART() {

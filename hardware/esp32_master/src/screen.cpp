@@ -1,5 +1,6 @@
 #include "screen.h"
-#include "uart.h"      
+#include "uart.h"
+#include "config.h"
 #include <SPI.h>
 #include <TFT_eSPI.h>
 
@@ -15,17 +16,17 @@ typedef struct {
 
 // Danh sách nút
 Button buttons[4] = {
-  {0,  60,  "Led"},
+  {0,  60,  "Child room light"},
   {160, 60, "Main Door"},
-  {0,  120, "Led 2"},
-  {160, 120, "Led 3"}
+  {0,  120, "Parent room light"},
+  {160, 120, "Living room light"}
 };
 
 bool buttonStates[4] = {false, false, false, false};
 
 // Lệnh UART cho từng nút
-const char* onCommands[]  = { "LIGHT_ON", "MAIN_DOOR_ON", "AC_ON", "LOCK_OPEN" };
-const char* offCommands[] = { "LIGHT_OFF", "MAIN_DOOR_OFF", "AC_OFF", "LOCK_CLOSE" };
+const char* onCommands[]  = { "device:led1,state:ON", "MAIN_DOOR_ON", "device:led2,state:ON", "device:led3,state:ON" };
+const char* offCommands[] = { "device:led1,state:OFF", "MAIN_DOOR_OFF", "device:led2,state:OFF", "device:led3,state:OFF" };
 
 // Vẽ tiêu đề
 void drawTitle() {
@@ -65,16 +66,15 @@ void setupScreen() {
   tft.setTouch(calData);
 
   tft.fillScreen(TFT_BLACK);
-  tft.setTextSize(2);
+  tft.setTextSize(5);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString("Cham nut:", 60, 10);
 
   drawTitle();
   drawButtons();
 }
 
 // Gọi trong loop()
-void updateScreen() {
+void updateScreen(PubSubClient& client) {
   uint16_t x = 0, y = 0;
   bool pressed = tft.getTouch(&x, &y);
   if (pressed) {
@@ -88,6 +88,7 @@ void updateScreen() {
 
         const char* command = buttonStates[i] ? onCommands[i] : offCommands[i];
         send(command);
+        client.publish(MQTT_TOPIC_PUB, command);
 
         delay(300);  
       }

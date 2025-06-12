@@ -1,5 +1,5 @@
 #include "servo_handler.h"
-#include <Servo.h>
+#include <ESP32Servo.h>
 #include "config.h"
 
 Servo servo1;

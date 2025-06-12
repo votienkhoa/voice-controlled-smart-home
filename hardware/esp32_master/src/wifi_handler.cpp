@@ -3,7 +3,6 @@
 #include "config.h"
 
 void setupWiFi() {
-  Serial.begin(115200);
   Serial.print("Connecting to WiFi: ");
   Serial.println(WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASS);

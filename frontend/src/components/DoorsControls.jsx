@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ref, set } from "firebase/database";
 import { database } from "../config/firebase";
+import axios from "axios";
 
 const normalizeDoors = (devices) => {
   if (Array.isArray(devices)) return devices;
@@ -17,7 +18,7 @@ const normalizeDoors = (devices) => {
   return [];
 };
 
-const DoorsControls = ({ devices = [], room }) => {
+const DoorsControls = ({ devices = [], room, canControl }) => {
   const [doors, setDoors] = useState(normalizeDoors(devices));
 
   useEffect(() => {
@@ -25,7 +26,29 @@ const DoorsControls = ({ devices = [], room }) => {
   }, [devices]);
 
   const toggleDoor = async (index) => {
+    if (!canControl) return;
+    // Hard-coded URL logic based on room
+    let url = "";
+    if (room === "Guest Room") {
+      url = "/servo/1/angle/";
+    } else if (room === "Master Bedroom") {
+      url = "/servo/2/angle/";
+    }
+    // ...add more room logic as needed
+
     const newDoors = [...doors];
+    if (newDoors[index].open === false) {
+      if (room === "Guest Room") {
+        url += "180";
+      }
+      else url += "0";
+    }
+    else {
+      if (room === "Guest Room") {
+        url += "0";
+      }
+      else url += "180";
+    }
     newDoors[index].open = !newDoors[index].open;
     setDoors(newDoors);
     // Update the door status in Firebase (customize path as needed)
@@ -33,6 +56,8 @@ const DoorsControls = ({ devices = [], room }) => {
       ref(database, `devices/${room}/door`), {
             open: newDoors[index].open
     });
+    // POST to backend
+    await axios.post(url, { room });
   };
 
   return (
@@ -53,9 +78,11 @@ const DoorsControls = ({ devices = [], room }) => {
                 door.open ? "bg-red-500" : "bg-green-500"
               } text-white`}
               onClick={() => toggleDoor(index)}
+              disabled={!canControl}
             >
               {door.open ? "Close" : "Open"}
             </button>
+            {!canControl && <div className="text-xs text-gray-500">View only</div>}
           </div>
         ))}
       </div>
