@@ -5,7 +5,7 @@ import { auth, database } from "../config/firebase";
 
 const API_PORT = 3000; // Keep in sync with backend server.js
 // const API_BASE = `http://localhost:${API_PORT}`;
-const API_BASE = "api.kdth-smarthome.space";
+const API_BASE = "https://api.kdth-smarthome.space";
 
 const normalizeDevices = (devices) => {
   // If devices is an array, return as is
