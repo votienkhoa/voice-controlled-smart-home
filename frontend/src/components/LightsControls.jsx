@@ -3,7 +3,8 @@ import axios from 'axios';
 import { ref, set } from "firebase/database";
 import { database } from "../config/firebase";
 
-const api_url = "/api"
+const API_PORT = 3000; // Keep in sync with backend server.js
+const API_BASE = `http://localhost:${API_PORT}`;
 
 const normalizeDevices = (devices) => {
   // If devices is an array, return as is
@@ -23,13 +24,12 @@ const LightsControls = ({ devices = [], room, canControl }) => {
   const toggleLight = async (index) => {
     if (!canControl) return;
     let url = "";
-    // Hard-coded URL logic based on room
     if (room === "Living Room") {
-      url = "/led/3/"; // Example: change to your actual endpoint
+      url = `${API_BASE}/led/1/`;
     } else if (room === "Guest Room") {
-      url = "/led/1/";
+      url = `${API_BASE}/led/2/`;
     } else if (room === "Master Bedroom") {
-      url = "/led/2/";
+      url = `${API_BASE}/led/3/`;
     }
     // ...add more room logic as needed
 

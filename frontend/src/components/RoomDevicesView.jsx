@@ -7,6 +7,9 @@ import DoorsControls from "./DoorsControls.jsx";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
 
+const API_PORT = 3000; // Keep in sync with backend server.js
+const API_BASE = `http://localhost:${API_PORT}`;
+
 const RoomDevicesView = ({ room }) => {
     const [devices, setDevices] = useState({});
     const [allowedRooms, setAllowedRooms] = useState([]);
@@ -35,11 +38,11 @@ const RoomDevicesView = ({ room }) => {
         if (!room) return;
         const interval = setInterval(() => {
             if (devices["Temperature & Humidity Sensor"]) {
-                axios.get("/dht11/temp");
-                axios.get("/dht11/hum");
+                axios.get(`${API_BASE}/dht11/temp`);
+                axios.get(`${API_BASE}/dht11/hum`);
             }
             if (devices["Gas Sensor"]) {
-                axios.get("/mq2");
+                axios.get(`${API_BASE}/mq2`);
             }
         }, 5000);
         return () => clearInterval(interval);

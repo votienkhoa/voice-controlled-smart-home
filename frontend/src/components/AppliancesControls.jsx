@@ -1,5 +1,8 @@
 import { useState } from "react";
 
+const API_PORT = 3000; // Keep in sync with backend server.js
+const API_BASE = `http://localhost:${API_PORT}`;
+
 const AppliancesControls = ({ devices = [], canControl, room }) => {
   return (
     <div className="mt-8">
@@ -26,5 +29,7 @@ const AppliancesControls = ({ devices = [], canControl, room }) => {
     </div>
   )
 }
+
+// Use API_BASE for any axios/fetch calls you add here in the future
 
 export default AppliancesControls
