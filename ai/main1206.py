@@ -14,32 +14,40 @@ from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from speechbrain.pretrained import EncoderClassifier
 import wave
-
+import requests
 import soundfile as sf
+
 # === Configuration ===
 SAMPLE_RATE = 16000
-DURATION = 2.5  # seconds to capture full command + speaker
+DURATION = 2.5
 RECORD_PATH = "recorded_command.wav"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-CLASSIFIER_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/classifier_model(1).pkl"
-NORMALIZER_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/normalizer(1).pkl"
+CLASSIFIER_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/classifier_model(2).pkl"
+NORMALIZER_PATH = "/home/pbl/voice-controlled-smart-home/ai/SpeakerRecognition/normalizer(2).pkl"
 PRETRAINED_DIR = "pretrained_ecapa"
 WAKE_PHRASE = "xin chào"
 
 COMMAND_TEMPLATES = [
-    "bật đèn phòng ngủ",
-    "tắt đèn phòng ngủ",
-    "mở điều hòa",
-    "tắt điều hòa",
+    "bật đèn phòng con",
+    "tắt đèn phòng con",
+    "bật đèn phòng cha mẹ",
+    "tắt đèn phòng cha mẹ",
+    "bật đèn phòng khách",
+    "tắt đèn phòng khách",
+    "mở cửa phòng con",
+    "đóng cửa phòng con",
+    "mở cửa phòng cha mẹ",
+    "đóng cửa phòng cha mẹ"
 ]
+
 PERMISSION_MAP = {
-    "dung": ["bật đèn phòng ngủ", "tắt đèn phòng ngủ"],
-    "huy": COMMAND_TEMPLATES,
-    "khoa": ["mở điều hòa", "tắt điều hòa"],
-    "thuong": [],
+    "dung": ["bật đèn phòng con", "tắt đèn phòng con"],
+    "huy": [],
+    "khoa": ["mở cửa phòng cha mẹ", "đóng cửa phòng cha mẹ"],
+    "thuong": COMMAND_TEMPLATES,
 }
 
-# === Load Models ===
+# === Load models ===
 encoder = EncoderClassifier.from_hparams(
     source="speechbrain/spkrec-ecapa-voxceleb",
     savedir=PRETRAINED_DIR,
@@ -114,7 +122,31 @@ def match_command(text):
 
 def execute_command(cmd):
     print(f"[ACTION] Thực thi: {cmd}")
-    # TODO: Thêm lỗi thực tế ở đây (GPIO, MQTT, API...)
+    try:
+        if cmd == "bật đèn phòng con":
+            requests.post("http://192.168.2.39:3000/led/1/on")
+        elif cmd == "tắt đèn phòng con":
+            requests.post("http://192.168.2.39:3000/led/1/off")
+        elif cmd == "bật đèn phòng cha mẹ":
+            requests.post("http://192.168.2.39:3000/led/2/on")
+        elif cmd == "tắt đèn phòng cha mẹ":
+            requests.post("http://192.168.2.39:3000/led/2/off")
+        elif cmd == "bật đèn phòng khách":
+            requests.post("http://192.168.2.39:3000/led/3/on")
+        elif cmd == "tắt đèn phòng khách":
+            requests.post("http://192.168.2.39:3000/led/3/off")
+        elif cmd == "mở cửa phòng con":
+            requests.post("http://192.168.2.39:3000/servo/1/angle/90")
+        elif cmd == "đóng cửa phòng con":
+            requests.post("http://192.168.2.39:3000/servo/1/angle/0")
+        elif cmd == "mở cửa phòng cha mẹ":
+            requests.post("http://192.168.2.39:3000/servo/2/angle/90")
+        elif cmd == "đóng cửa phòng cha mẹ":
+            requests.post("http://192.168.2.39:3000/servo/2/angle/0")
+        else:
+            print(f"[WARNING] Lệnh không xác định: {cmd}")
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] Gửi yêu cầu thất bại: {e}")
 
 # === Main Loop ===
 def main_loop():
@@ -149,11 +181,15 @@ def main_loop():
                     continue
 
                 cmd, score = match_command(command_text)
-                print(f"[INFO] Phù hợp với lệnh: {cmd} (sim={score:.2f})")
+                print(f"[INFO] Lệnh khớp: {cmd} (similarity = {score:.2f})")
+
+                if score < 0.5:
+                    speak("Lệnh chưa rõ ràng, vui lòng thử lại.")
+                    continue
 
                 if cmd in PERMISSION_MAP.get(speaker, []):
-                    speak(f"Đang thực hiện lệnh: {cmd}")
                     execute_command(cmd)
+                    speak(f"Đã thực hiện lệnh: {cmd}")
                 else:
                     speak(f"Bạn không có quyền thực hiện lệnh {cmd}.")
         except KeyboardInterrupt:
@@ -162,3 +198,5 @@ def main_loop():
 
 if __name__ == "__main__":
     main_loop()
+
+
