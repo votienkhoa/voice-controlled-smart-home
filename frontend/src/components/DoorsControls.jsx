@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { ref, set } from "firebase/database";
 import { database } from "../config/firebase";
+import axios from "axios";
 
 const normalizeDoors = (devices) => {
   if (Array.isArray(devices)) return devices;
@@ -26,7 +27,28 @@ const DoorsControls = ({ devices = [], room, canControl }) => {
 
   const toggleDoor = async (index) => {
     if (!canControl) return;
+    // Hard-coded URL logic based on room
+    let url = "";
+    if (room === "Guest Room") {
+      url = "/servo/1/angle/";
+    } else if (room === "Master Bedroom") {
+      url = "/servo/2/angle/";
+    }
+    // ...add more room logic as needed
+
     const newDoors = [...doors];
+    if (newDoors[index].open === false) {
+      if (room === "Guest Room") {
+        url += "180";
+      }
+      else url += "0";
+    }
+    else {
+      if (room === "Guest Room") {
+        url += "0";
+      }
+      else url += "180";
+    }
     newDoors[index].open = !newDoors[index].open;
     setDoors(newDoors);
     // Update the door status in Firebase (customize path as needed)
@@ -34,8 +56,8 @@ const DoorsControls = ({ devices = [], room, canControl }) => {
       ref(database, `devices/${room}/door`), {
             open: newDoors[index].open
     });
-    // Add room to body for backend auth
-    // (Add axios call here if you want to trigger backend as well)
+    // POST to backend
+    await axios.post(url, { room });
   };
 
   return (

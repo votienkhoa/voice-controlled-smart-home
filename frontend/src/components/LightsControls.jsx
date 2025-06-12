@@ -23,21 +23,32 @@ const LightsControls = ({ devices = [], room, canControl }) => {
   const toggleLight = async (index) => {
     if (!canControl) return;
     let url = "";
+    // Hard-coded URL logic based on room
+    if (room === "Living Room") {
+      url = "/led/3/"; // Example: change to your actual endpoint
+    } else if (room === "Guest Room") {
+      url = "/led/1/";
+    } else if (room === "Master Bedroom") {
+      url = "/led/2/";
+    }
+    // ...add more room logic as needed
+
     const newLights = [...lights];
     try {
+        // Toggle logic (example, adjust as needed)
         if (lights[index].status === 0){
-          url = "/led/on";
           newLights[index].status = 1;
+          url += "on";
         }
         else{
-          url = "/led/off";
           newLights[index].status = 0;
+          url += "off";
         }
         setLights(newLights);
         await set(ref(database, `devices/${room}/light`), {
             status: newLights[index].status
         });
-        // Add room to body for backend auth
+        // POST to backend
         await axios.post(url, { room });
         return;
     } catch (error) {
