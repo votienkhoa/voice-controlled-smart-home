@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include "config.h"
 #include "uart.h"
+#include "screen.h"
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   String message;
@@ -10,6 +11,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   Serial.println("MQTT Received: [" + message + "]");
   send(message.c_str());
+  updateScreenFromMQTT(message.c_str());
 }
 
 void setupMQTT(PubSubClient& client) {

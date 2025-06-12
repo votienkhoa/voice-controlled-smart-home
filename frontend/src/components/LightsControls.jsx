@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from 'axios';
 import { ref, set } from "firebase/database";
-import { database } from "../config/firebase";
+import { auth, database } from "../config/firebase";
 
 const API_PORT = 3000; // Keep in sync with backend server.js
 const API_BASE = `http://localhost:${API_PORT}`;
@@ -48,8 +48,16 @@ const LightsControls = ({ devices = [], room, canControl }) => {
         await set(ref(database, `devices/${room}/light`), {
             status: newLights[index].status
         });
-        // POST to backend
-        await axios.post(url, { room });
+        // Get Firebase ID token
+        const user = auth.currentUser;
+        if (!user) throw new Error("User not authenticated");
+        const token = await user.getIdToken();
+        // POST to backend with Authorization header
+        await axios.post(url, { room }, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
         return;
     } catch (error) {
         console.error("Error toggling light:", error);

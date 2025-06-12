@@ -27,5 +27,11 @@ void loop() {
   receive(mqttClient);
   updateScreen(mqttClient);
 
+  static unsigned long lastRequest = 0;
+  if (millis() - lastRequest >= 3000) {
+    requestSensorData();
+    lastRequest = millis();
+  }
+
   delay(100); 
 }

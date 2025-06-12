@@ -27,21 +27,27 @@ void handleUART() {
     } 
     else if (message == "device:led1,state:ON") {
       controlLED(1, true);
+      sendUART("led1:ON");
     } 
     else if (message == "device:led1,state:OFF") {
       controlLED(1, false);
+      sendUART("led1:OFF");
     } 
     else if (message == "device:led2,state:ON") {
       controlLED(2, true);
+      sendUART("led2:ON");
     } 
     else if (message == "device:led2,state:OFF") {
       controlLED(2, false);
+      sendUART("led2:OFF");
     } 
     else if (message == "device:led3,state:ON") {
       controlLED(3, true);
+      sendUART("led3:ON");
     } 
     else if (message == "device:led3,state:OFF") {
       controlLED(3, false);
+      sendUART("led3:OFF");
     } 
     else if (message.startsWith("device:servo1,angle:")) {
       int angle = message.substring(20).toInt();

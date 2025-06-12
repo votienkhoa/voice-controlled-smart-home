@@ -9,7 +9,7 @@ const app = express();
 const port = 3000;
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: '*',
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -86,42 +86,45 @@ client.on('message', (topic, message) => {
     // "masterbedroom_gas:100"
 
     // Door status (Guest Room)
-    if (msg.startsWith("guestroom_door:")) {
-      const open = msg.split(":")[1] === "open";
+    if (msg.startsWith("servo1:")) {
+      const open = msg.split(":")[2] === "180";
+      console.log(open);
       admin.database().ref('devices/Guest Room/door/open').set(open);
     }
     // Light status (Guest Room)
-    else if (msg.startsWith("guestroom_light:")) {
-      const status = parseInt(msg.split(":")[1]);
+    else if (msg.startsWith("led1:")) {
+      const stat = msg.split(":")[1].trim();
+      const status = stat === "ON" ? 1 : 0;
+      console.log(status);
       admin.database().ref('devices/Guest Room/light/status').set(status);
     }
     // Door status (Master Bedroom)
-    else if (msg.startsWith("masterbedroom_door:")) {
-      const open = msg.split(":")[1] === "open";
+    else if (msg.startsWith("servo2:")) {
+      const open = msg.split(":")[1].trim() === "0";
       admin.database().ref('devices/Master Bedroom/door/open').set(open);
     }
     // Light status (Master Bedroom)
-    else if (msg.startsWith("masterbedroom_light:")) {
-      const status = parseInt(msg.split(":")[1]);
+    else if (msg.startsWith("led2:")) {
+      const status = msg.split(":")[1].trim() === "ON" ? 1 : 0;
       admin.database().ref('devices/Master Bedroom/light/status').set(status);
     }
     // Gas sensor (Master Bedroom)
-    else if (msg.startsWith("masterbedroom_gas:")) {
+    else if (msg.startsWith("mq2:")) {
       const value = parseFloat(msg.split(":")[1]);
       admin.database().ref('devices/Master Bedroom/Gas Sensor/value').set(value);
     }
     // Light status (Living Room)
-    else if (msg.startsWith("livingroom_light:")) {
-      const status = parseInt(msg.split(":")[1]);
+    else if (msg.startsWith("led3:")) {
+      const status = msg.split(":")[1].trim() === "ON" ? 1 : 0;
       admin.database().ref('devices/Living Room/light/status').set(status);
     }
     // Temp (Living Room)
-    else if (msg.startsWith("livingroom_temp:")) {
+    else if (msg.startsWith("dht11_temp:")) {
       const temp = parseFloat(msg.split(":")[1]);
       admin.database().ref('devices/Living Room/Temperature & Humidity Sensor/temp').set(temp);
     }
     // Humidity (Living Room)
-    else if (msg.startsWith("livingroom_hum:")) {
+    else if (msg.startsWith("dht11_hum:")) {
       const humid = parseFloat(msg.split(":")[1]);
       admin.database().ref('devices/Living Room/Temperature & Humidity Sensor/humid').set(humid);
     }
